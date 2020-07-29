@@ -1,0 +1,6 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <ui:VisualElement style="height: 360px;">
+        <ui:IMGUIContainer name="Toolbar" />
+        <ui:IMGUIContainer name="Materials" />
+    </ui:VisualElement>
+</ui:UXML>
