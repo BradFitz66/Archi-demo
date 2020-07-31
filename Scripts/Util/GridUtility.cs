@@ -7,7 +7,7 @@ namespace Archi.Core.Utils
     public static class GridUtility
     {
 
-        public static Mesh GenerateCachedGridMesh(GridLayout gridLayout, Color color)
+        public static Mesh GenerateGridMesh(GridLayout gridLayout, Color color)
         {
             switch (gridLayout.cellLayout)
             {
@@ -17,12 +17,23 @@ namespace Archi.Core.Utils
                     int numCells = max - min;
                     RectInt bounds = new RectInt(min, min, numCells, numCells);
 
-                    return GenerateCachedGridMesh(gridLayout, color, 2f, bounds, MeshTopology.Lines);
+                    return GenerateGridMesh(gridLayout, color, 2f, bounds, MeshTopology.Lines);
             }
             return null;
         }
 
-        public static Mesh GenerateCachedGridMesh(GridLayout gridLayout, Color color, float screenPixelSize, RectInt bounds, MeshTopology topology)
+        public static int GenerateHash(GridLayout layout, Color color)
+        {
+            int hash = 0x7ed55d16;
+            hash ^= layout.cellSize.GetHashCode();
+            hash ^= layout.cellLayout.GetHashCode() << 23;
+            hash ^= (layout.cellGap.GetHashCode() << 4) + 0x165667b1;
+            hash ^= layout.cellSwizzle.GetHashCode() << 7;
+            hash ^= color.GetHashCode();
+            return hash;
+        }
+
+        public static Mesh GenerateGridMesh(GridLayout gridLayout, Color color, float screenPixelSize, RectInt bounds, MeshTopology topology)
         {
             Mesh mesh = new Mesh();
             mesh.hideFlags = HideFlags.HideAndDontSave;

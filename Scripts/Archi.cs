@@ -4,12 +4,19 @@ using UnityEngine;
 
 namespace Archi.Core
 {
+    [System.Serializable]
+    public class TileDictionary : SerializableDictionary<Vector3Int, TileData> {}
     [RequireComponent(typeof(Grid))]
     [ExecuteInEditMode] 
-    public class Archi : MonoBehaviour
+    public class Archi : MonoBehaviour, ISerializationCallbackReceiver
     {
         [HideInInspector]
-        public GameObject geometry;
+        public TileDictionary tiles=new TileDictionary();
+        List<Vector3Int> positions;
+        List<TileData> data;
+
+        [HideInInspector]
+        public GameObject geometry;//
         [HideInInspector]
         public List<Material> materials = new List<Material>();
 
@@ -22,6 +29,27 @@ namespace Archi.Core
         public Grid grid;
 
         GameObject plane;
+
+        public void OnBeforeSerialize()
+        {
+            //positions.Clear();
+            //data.Clear();
+            //foreach (var kvp in tiles)
+            //{
+            //    positions.Add(kvp.Key);
+            //    data.Add(kvp.Value);
+            //}
+            
+
+        }
+        public void OnAfterDeserialize()
+        {
+            //tiles = new Dictionary<Vector3Int, TileData>();
+
+            //for (int i = 0; i != System.Math.Min(positions.Count, data.Count); i++)
+            //    tiles.Add(positions[i], data[i]);
+        }
+
         private void Awake()
         {
             grid = GetComponent<Grid>();
