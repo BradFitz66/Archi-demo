@@ -5,6 +5,8 @@ using System;
 using System.Linq;
 using System.Net.Security;
 using UnityEditor;
+using UnityEngine.UI;
+using Malee.List;
 
 namespace Archi.Core.Components {
     [Flags]
@@ -23,25 +25,35 @@ namespace Archi.Core.Components {
     [System.Serializable]
     public struct AutoTileData
     {
+        [Tooltip("The tile prefab. This must have a Tile component attached to it")]
         public GameObject tile;
         
+        [Tooltip("Rotation difference. This is so you can reuse the same tile prefab and just rotate it a certain amount of degrees. Useful for corner pieces.")]
         public float rotationDiff;
 
+        [Tooltip("Should the tile rotate on the Z axis instead of Y (useful for if you mess up a blender export)")]
         public bool ZRotation;
+
+        [Tooltip("The tile mask. For example, if the tile is a corner piece, this should be set to either (Right+Bottom), (Right+Top), (Left+Top), (Left+Bottom) ")]
+        public TileBitMask tileMask;
         
         /// <summary>
         /// Create a new autotile
         /// </summary>
         /// <param name="t">GameObject tile</param>
         /// <param name="r">Rotation of the tile</param>
-        public AutoTileData(GameObject t, float r,bool z)
+        /// <param name="z">Should we rotate by Z instead of Y? (for when you fuck up blender exporting, like I did)</param>
+        /// <param name="tM">Should we rotate by Z instead of Y? (for when you fuck up blender exporting, like I did)</param>
+        public AutoTileData(GameObject t, float r,bool z, TileBitMask tM=TileBitMask.None)
         {
             tile = t;
             rotationDiff = r;
             ZRotation = z;
+            tileMask= tM;
         }
     }
-
+    [System.Serializable]
+    public class AutoTileDataList : ReorderableArray<AutoTileData>{}
     [ExecuteInEditMode]
     public class Tile : MonoBehaviour
     {
@@ -52,43 +64,37 @@ namespace Archi.Core.Components {
         TileBitMask mask;
 
         
-        public TileDictionary rotations;
+        TileDictionary rotations;
 
+
+        [Reorderable(surrogateType = typeof(AutoTileData), surrogateProperty = "objectProperty")]
+        public AutoTileDataList rotationsList;
+        
         TileData[] neighbours;
-        AutoTileData defaultMesh;
+        [Tooltip("The default tile that will be placed if no rule can be found. THIS SHOULD NOT BE THE SAME AS YOUR 'MAIN' TILE (the one that contains the rule info)")]
+        public AutoTileData defaultTile;
 
         void Awake()
         {
-            //List of tiles.
             rotations = new TileDictionary();
 
-            //rotations.Add(8, Resources.Load<GameObject>("Prefabs/mesh_wall2Rot"));
-            //rotations.Add(2, Resources.Load<GameObject>("Prefabs/mesh_wall2Rot"));
-            //rotations.Add(10, Resources.Load<GameObject>("Prefabs/mesh_wall2Rot"));
-            //rotations.Add(12, Resources.Load<GameObject>("Prefabs/mesh_wall3"));
-            //rotations.Add(6, Resources.Load<GameObject>("Prefabs/mesh_wall3Rot"));
-            //rotations.Add(7, Resources.Load<GameObject>("Prefabs/mesh_wall4Rot2"));
-            //rotations.Add(13, Resources.Load<GameObject>("Prefabs/mesh_wall4Rot3"));
-            //rotations.Add(3, Resources.Load<GameObject>("Prefabs/mesh_wall3Rot2"));
-            //rotations.Add(9, Resources.Load<GameObject>("Prefabs/mesh_wall3Rot3"));
-            //rotations.Add(11, Resources.Load<GameObject>("Prefabs/mesh_wall4"));
-            //rotations.Add(14, Resources.Load<GameObject>("Prefabs/mesh_wall4Rot"));
-            //rotations.Add(15, Resources.Load<GameObject>("Prefabs/mesh_wall5"));
+            defaultTile = new AutoTileData(Resources.Load<GameObject>("Prefabs/mesh_wall"),0,true);
+        }
+        //We need to be able to control when we add the stuff from rotationsList into rotations.
+        public void FillRotationsDictionary()
+        {
+            for (int i = 0; i < rotationsList.Count; i++)
+            {
+                /*Ugly hack. For some reason, selecting all of the flags in unity's enum flag field drawer causes (int)mask to become -1
+                    
+                Apparently this is 'correct' but isn't what I want, since in code doing the same thing via:
 
-            rotations.Add(2, new AutoTileData(Resources.Load<GameObject>("Prefabs/mesh_wall2"), 90,true));
-            rotations.Add(3, new AutoTileData(Resources.Load<GameObject>("Prefabs/mesh_wall3"), 180, true));
-            rotations.Add(6, new AutoTileData(Resources.Load<GameObject>("Prefabs/mesh_wall3"), 90, true));
-            rotations.Add(7, new AutoTileData(Resources.Load<GameObject>("Prefabs/mesh_wall4"), -90, true));
-            rotations.Add(8, new AutoTileData(Resources.Load<GameObject>("Prefabs/mesh_wall2"), 90, true));
-            rotations.Add(9, new AutoTileData(Resources.Load<GameObject>("Prefabs/mesh_wall3"), -90, true));
-            rotations.Add(10, new AutoTileData(Resources.Load<GameObject>("Prefabs/mesh_wall2"), 90,true));
-            rotations.Add(11, new AutoTileData(Resources.Load<GameObject>("Prefabs/mesh_wall4"), 0,true));
-            rotations.Add(12, new AutoTileData(Resources.Load<GameObject>("Prefabs/mesh_wall3"), 0,true));
-            rotations.Add(13, new AutoTileData(Resources.Load<GameObject>("Prefabs/mesh_wall4"), 90,true));
-            rotations.Add(14, new AutoTileData(Resources.Load<GameObject>("Prefabs/mesh_wall4"), 180,true));
-            rotations.Add(15, new AutoTileData(Resources.Load<GameObject>("Prefabs/mesh_wall5"), 180,true));
-            
-            defaultMesh = new AutoTileData(Resources.Load<GameObject>("Prefabs/mesh_wall2"),0,true);
+                mask = TileBitMask.Left | TileBitMask.Right | TileBitMask.Bottom | TileBitMask.Top; and doing (int)mask will give me 15, causing us to not be able
+                to get the correct tile from the dictionary. I just hardcode it so if the tileMask is -1, then just set it to be 15. Ugly, but it works.
+                 */
+                rotations.Add((int)rotationsList[i].tileMask!= -1 ? (int)rotationsList[i].tileMask : 15, rotationsList[i]);
+            }
+
         }
         private void OnDestroy()
         {
@@ -97,9 +103,9 @@ namespace Archi.Core.Components {
         void GetNeighbours(out TileData[] neighbours)
         {
             neighbours = new TileData[8];
-            Vector3Int t = gridPosition + new Vector3Int(0, -1, 0);
+            Vector3Int t = gridPosition + new Vector3Int(0, 1, 0);
             Vector3Int r = gridPosition + new Vector3Int(1, 0, 0);
-            Vector3Int b = gridPosition + new Vector3Int(0, 1, 0);
+            Vector3Int b = gridPosition + new Vector3Int(0, -1, 0);
             Vector3Int l = gridPosition + new Vector3Int(-1, 0, 0);
             neighbours[0] = tilemap.tiles.ContainsKey(t) ? tilemap.tiles[t] : null; //Top 
             neighbours[1] = tilemap.tiles.ContainsKey(r) ? tilemap.tiles[r] : null;//Right
@@ -111,8 +117,10 @@ namespace Archi.Core.Components {
         {
             GetNeighbours(out neighbours);
             mask = TileBitMask.None;
+            //This is for updating neighbours.
             for (int i = 0; i < neighbours.Length; i++)
             {
+                //Stops stackoverflow.
                 if (beingUpdated)
                     break;
                 if (neighbours[i] != null)
@@ -121,6 +129,7 @@ namespace Archi.Core.Components {
                         neighbours[i].obj.GetComponent<Tile>().UpdateTile(true);
                 }
             }
+            //Don't continue if we're an updater tile(a tile that updates others
             if (isUpdater)
                 return;
             if (neighbours[0] != null)
@@ -131,24 +140,36 @@ namespace Archi.Core.Components {
                 mask |= TileBitMask.Bottom;
             if (neighbours[3] != null)
                 mask |= TileBitMask.Left;
-            GameObject newTile = rotations.ContainsKey((int)mask) ? rotations[(int)mask].tile: defaultMesh.tile;
-            float rotationDiff = rotations.ContainsKey((int)mask) ? rotations[(int)mask].rotationDiff: defaultMesh.rotationDiff;
-            bool zRotation = rotations.ContainsKey((int)mask) ? rotations[(int)mask].ZRotation: defaultMesh.ZRotation;
-            GameObject tile = PrefabUtility.InstantiatePrefab(newTile) as GameObject;
 
-            Tile t = tile.GetComponent<Tile>();
-            t.gridPosition = gridPosition;
-            t.tilemap = tilemap;
-            tile.transform.position = transform.position;
-            tile.transform.rotation *= !zRotation ? Quaternion.Euler(0, rotationDiff, 0) : Quaternion.Euler(0,0,rotationDiff) ;
-            tile.transform.parent = tilemap.transform;
-            tile.GetComponent<Renderer>().sharedMaterial = GetComponent<Renderer>().sharedMaterial;
-            t.tilemap.tiles[t.gridPosition].obj = tile;
-            t.neighbours = neighbours;
-            t.mask = mask;
-            tile.hideFlags = hideFlags;
-            DestroyImmediate(gameObject);
+
+
+            GameObject newTile = rotations.ContainsKey((int)mask) ? rotations[(int)mask].tile: defaultTile.tile;
+            float rotationDiff = rotations.ContainsKey((int)mask) ? rotations[(int)mask].rotationDiff: defaultTile.rotationDiff;
+            bool zRotation = rotations.ContainsKey((int)mask) ? rotations[(int)mask].ZRotation: defaultTile.ZRotation;
+
+            //Replacing tile with new one
             
+            GameObject tile = PrefabUtility.InstantiatePrefab(newTile) as GameObject;
+            if (tile)
+            {
+                Tile t = tile.GetComponent<Tile>();
+                tile.transform.position = transform.position;
+                tile.transform.rotation *= !zRotation ? Quaternion.Euler(0, rotationDiff, 0) : Quaternion.Euler(0, 0, rotationDiff);
+                tile.transform.parent = tilemap.transform;
+                tile.GetComponent<Renderer>().sharedMaterial = GetComponent<Renderer>().sharedMaterial;
+                if (t)
+                {
+                    t.gridPosition = gridPosition;
+                    t.tilemap = tilemap;
+                    t.tilemap.tiles[t.gridPosition].obj = tile;
+                    t.neighbours = neighbours;
+                    t.mask = mask;
+                    t.rotationsList = rotationsList;
+                    t.FillRotationsDictionary();
+                }
+                tile.hideFlags = hideFlags;
+                DestroyImmediate(gameObject);
+            }
         }
         //hack
         static void drawString(string text, Vector3 worldPos, Color? colour = null)
@@ -163,7 +184,7 @@ namespace Archi.Core.Components {
         }        
         private void OnDrawGizmosSelected()
         {
-            //drawString(mask.ToString() +" "+ ((int)mask).ToString(), transform.position + new Vector3(0, 2, 0), Color.black);
+            drawString(((int)mask).ToString(), transform.position + new Vector3(0, 2, 0), Color.black);
         }
         private void OnDrawGizmos()
         {

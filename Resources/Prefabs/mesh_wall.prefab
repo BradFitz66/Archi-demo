@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 5768401502234035341}
   - component: {fileID: -3736883155064473735}
   m_Layer: 0
-  m_Name: mesh_wall2
+  m_Name: mesh_wall
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -26,7 +26,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5202128805571817553}
-  m_LocalRotation: {x: -0.7071068, y: -0, z: -0, w: 0.7071068}
+  m_LocalRotation: {x: -0.7071068, y: 0, z: 0, w: 0.7071068}
   m_LocalPosition: {x: 125, y: 0, z: -62}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
@@ -59,7 +59,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 670224309865224971, guid: 39da066f80d945f41bb11a99c21423a9, type: 3}
+  - {fileID: -1134714066672644336, guid: cbe17653dc2a7874681f02c2b2053d46, type: 3}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -93,4 +93,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   tilemap: {fileID: 0}
-  gridPosition: {x: 62, y: -5, z: 0}
+  gridPosition: {x: 76, y: -63, z: 0}
+  rotationsList:
+    array: []
+  defaultTile:
+    tile: {fileID: 5202128805571817553}
+    rotationDiff: 90
+    ZRotation: 0
+    tileMask: 0

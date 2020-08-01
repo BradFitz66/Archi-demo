@@ -1,5 +1,5 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
-    <ui:VisualElement style="height: 952px; align-items: flex-start;">
+    <ui:VisualElement style="height: auto; align-items: flex-start;">
         <ui:IMGUIContainer name="Toolbar" style="left: 0; justify-content: center; width: 100%;" />
         <ui:IMGUIContainer name="Materials" style="align-items: auto; left: 0; width: 100%;" />
         <ui:IMGUIContainer name="TilePaletteGrid" style="height: 136px; width: 100%; left: 0;" />

@@ -55,6 +55,8 @@ namespace Archi.Core.Editor
         Scene previewScene;
         List<GUIContent> materialPreviews;
         List<GUIContent> tilePreviews;
+
+        int selectedTile;
         GameObject camera;
         Camera camComp;
         //Invisible plane for a plane for the mouse raycast to hit.
@@ -91,6 +93,7 @@ namespace Archi.Core.Editor
                 //Disable renderer since we only want it for collision with raycasts
                 plane.GetComponent<Renderer>().enabled = false;
             }
+            selectedTile = archi.selectedTile;
             tiles = archi.tiles;
         }
 
@@ -105,10 +108,6 @@ namespace Archi.Core.Editor
                 DestroyImmediate(plane);
             }
 
-        }
-        private void OnValidate()
-        {
-            print("!");
         }
 
         //Drawing
@@ -170,9 +169,12 @@ namespace Archi.Core.Editor
             {
                 if (archi.Tiles.Count == 0)
                     return;
+                EditorGUILayout.BeginVertical("Box");
                 if (!editor)
-                    CreateCachedEditor(archi.Tiles[archi.selectedTile].GetComponent<Tile>(), null, ref editor);
+                    CreateCachedEditor(archi.Tiles[archi.selectedTile].GetComponent<Tile>(),null, ref editor);
                 editor.OnInspectorGUI();
+                EditorGUILayout.EndVertical();
+
             };
             tilePalette.onGUIHandler += () =>
             {
@@ -182,7 +184,7 @@ namespace Archi.Core.Editor
                 if (tilePreviews.Count > 0)
                     archi.selectedTile = GUILayout.Toolbar(archi.selectedTile, tilePreviews.ToArray(), GUILayout.Width(32 * tilePreviews.Count), GUILayout.Height(32));
                 else
-                    GUILayout.Label("No tiles. Drag and drop one onto the inspector to add");
+                    GUILayout.Label("No tiles. Drag and drop a tile (MUST HAVE TILE COMPONENT) prefab onto the inspector to add");
 
                 if (archi.Tiles.Count > 0)
                 {
@@ -290,18 +292,21 @@ namespace Archi.Core.Editor
                     {
                         if (archi.selectedTool == 0)
                         {
-                            GameObject TestTile = Instantiate<GameObject>(archi.Tiles[archi.selectedTile],archi.transform);
+                            GameObject TestTile = PrefabUtility.InstantiatePrefab(archi.Tiles[archi.selectedTile],archi.transform) as GameObject;
+                            
                             Renderer r = TestTile.GetComponent<Renderer>();
                             r.sharedMaterial = archi.materials[archi.selectedMaterial];
+
+                            //Get the world position of the cell from it's grid coordinates make sure we place at the center of the cell
                             Vector3 cellWorldPos = (WorldPosOfCell(CellAtMouse())) + new Vector3(grid.cellSize.x / 2, 0, grid.cellSize.y / 2);
                             TestTile.transform.position = cellWorldPos;
                             Vector3Int pos = CellAtMouse();
+                            //Add tile to tile dictionary with the key being the grid location of the cell it was placed on.
                             tiles.Add(pos, new TileData(TestTile, pos.x, pos.y));
                             Tile t = TestTile.GetComponent<Tile>();
                             t.tilemap = archi;
                             t.gridPosition = pos;
-
-                            TestTile.transform.parent = archi.transform;
+                            t.FillRotationsDictionary();
                             t.UpdateTile();
 
                         }
