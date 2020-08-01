@@ -136,8 +136,8 @@ namespace Archi.Core.Utils
             var uvs = new Vector2[vertex];
             var indices = new int[vertex];
             var colors = new Color[vertex];
-            var normals = new Vector3[totalVertices];     // Normal channel stores the position of the other end point of the line.
-            var uvs3 = new Vector2[totalVertices];        // UV3 channel stores the UV2 value of the other end point of the line.
+            var normals = new Vector3[totalVertices];     
+            var uvs3 = new Vector2[totalVertices];
 
             for (int i = 0; i < vertex; i++)
             {

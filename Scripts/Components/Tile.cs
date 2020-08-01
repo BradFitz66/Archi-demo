@@ -18,39 +18,77 @@ namespace Archi.Core.Components {
     }
 
     [System.Serializable]
-    public class TileDictionary : SerializableDictionary<int,GameObject> {}
+    public class TileDictionary : SerializableDictionary<int,AutoTileData> {}
+
+    [System.Serializable]
+    public struct AutoTileData
+    {
+        public GameObject tile;
+        
+        public float rotationDiff;
+
+        public bool ZRotation;
+        
+        /// <summary>
+        /// Create a new autotile
+        /// </summary>
+        /// <param name="t">GameObject tile</param>
+        /// <param name="r">Rotation of the tile</param>
+        public AutoTileData(GameObject t, float r,bool z)
+        {
+            tile = t;
+            rotationDiff = r;
+            ZRotation = z;
+        }
+    }
 
     [ExecuteInEditMode]
     public class Tile : MonoBehaviour
     {
+        [HideInInspector]
         public Archi tilemap;
+        [HideInInspector]
         public Vector3Int gridPosition=Vector3Int.zero;
         TileBitMask mask;
 
-        TileDictionary rotations;
+        
+        public TileDictionary rotations;
 
         TileData[] neighbours;
-        GameObject defaultMesh;
+        AutoTileData defaultMesh;
 
         void Awake()
         {
-            //List of tiles.s
+            //List of tiles.
             rotations = new TileDictionary();
 
-            rotations.Add(8, Resources.Load<GameObject>("Prefabs/mesh_wall2Rot"));
-            rotations.Add(2, Resources.Load<GameObject>("Prefabs/mesh_wall2Rot"));
-            rotations.Add(10, Resources.Load<GameObject>("Prefabs/mesh_wall2Rot"));
-            rotations.Add(12, Resources.Load<GameObject>("Prefabs/mesh_wall3"));
-            rotations.Add(6, Resources.Load<GameObject>("Prefabs/mesh_wall3Rot"));
-            rotations.Add(7, Resources.Load<GameObject>("Prefabs/mesh_wall4Rot2"));
-            rotations.Add(13, Resources.Load<GameObject>("Prefabs/mesh_wall4Rot3"));
-            rotations.Add(3, Resources.Load<GameObject>("Prefabs/mesh_wall3Rot2"));
-            rotations.Add(9, Resources.Load<GameObject>("Prefabs/mesh_wall3Rot3"));
-            rotations.Add(11, Resources.Load<GameObject>("Prefabs/mesh_wall4"));
-            rotations.Add(14, Resources.Load<GameObject>("Prefabs/mesh_wall4Rot"));
-            rotations.Add(15, Resources.Load<GameObject>("Prefabs/mesh_wall5"));
+            //rotations.Add(8, Resources.Load<GameObject>("Prefabs/mesh_wall2Rot"));
+            //rotations.Add(2, Resources.Load<GameObject>("Prefabs/mesh_wall2Rot"));
+            //rotations.Add(10, Resources.Load<GameObject>("Prefabs/mesh_wall2Rot"));
+            //rotations.Add(12, Resources.Load<GameObject>("Prefabs/mesh_wall3"));
+            //rotations.Add(6, Resources.Load<GameObject>("Prefabs/mesh_wall3Rot"));
+            //rotations.Add(7, Resources.Load<GameObject>("Prefabs/mesh_wall4Rot2"));
+            //rotations.Add(13, Resources.Load<GameObject>("Prefabs/mesh_wall4Rot3"));
+            //rotations.Add(3, Resources.Load<GameObject>("Prefabs/mesh_wall3Rot2"));
+            //rotations.Add(9, Resources.Load<GameObject>("Prefabs/mesh_wall3Rot3"));
+            //rotations.Add(11, Resources.Load<GameObject>("Prefabs/mesh_wall4"));
+            //rotations.Add(14, Resources.Load<GameObject>("Prefabs/mesh_wall4Rot"));
+            //rotations.Add(15, Resources.Load<GameObject>("Prefabs/mesh_wall5"));
+
+            rotations.Add(2, new AutoTileData(Resources.Load<GameObject>("Prefabs/mesh_wall2"), 90,true));
+            rotations.Add(3, new AutoTileData(Resources.Load<GameObject>("Prefabs/mesh_wall3"), 180, true));
+            rotations.Add(6, new AutoTileData(Resources.Load<GameObject>("Prefabs/mesh_wall3"), 90, true));
+            rotations.Add(7, new AutoTileData(Resources.Load<GameObject>("Prefabs/mesh_wall4"), -90, true));
+            rotations.Add(8, new AutoTileData(Resources.Load<GameObject>("Prefabs/mesh_wall2"), 90, true));
+            rotations.Add(9, new AutoTileData(Resources.Load<GameObject>("Prefabs/mesh_wall3"), -90, true));
+            rotations.Add(10, new AutoTileData(Resources.Load<GameObject>("Prefabs/mesh_wall2"), 90,true));
+            rotations.Add(11, new AutoTileData(Resources.Load<GameObject>("Prefabs/mesh_wall4"), 0,true));
+            rotations.Add(12, new AutoTileData(Resources.Load<GameObject>("Prefabs/mesh_wall3"), 0,true));
+            rotations.Add(13, new AutoTileData(Resources.Load<GameObject>("Prefabs/mesh_wall4"), 90,true));
+            rotations.Add(14, new AutoTileData(Resources.Load<GameObject>("Prefabs/mesh_wall4"), 180,true));
+            rotations.Add(15, new AutoTileData(Resources.Load<GameObject>("Prefabs/mesh_wall5"), 180,true));
             
-            defaultMesh =Resources.Load<GameObject>("Prefabs/mesh_wall2");
+            defaultMesh = new AutoTileData(Resources.Load<GameObject>("Prefabs/mesh_wall2"),0,true);
         }
         private void OnDestroy()
         {
@@ -93,18 +131,22 @@ namespace Archi.Core.Components {
                 mask |= TileBitMask.Bottom;
             if (neighbours[3] != null)
                 mask |= TileBitMask.Left;
-            print(rotations);
-            GameObject newTile = rotations.ContainsKey((int)mask) ? rotations[(int)mask] : defaultMesh;
+            GameObject newTile = rotations.ContainsKey((int)mask) ? rotations[(int)mask].tile: defaultMesh.tile;
+            float rotationDiff = rotations.ContainsKey((int)mask) ? rotations[(int)mask].rotationDiff: defaultMesh.rotationDiff;
+            bool zRotation = rotations.ContainsKey((int)mask) ? rotations[(int)mask].ZRotation: defaultMesh.ZRotation;
             GameObject tile = PrefabUtility.InstantiatePrefab(newTile) as GameObject;
 
-            Tile t = tile.AddComponent<Tile>();
+            Tile t = tile.GetComponent<Tile>();
             t.gridPosition = gridPosition;
             t.tilemap = tilemap;
             tile.transform.position = transform.position;
+            tile.transform.rotation *= !zRotation ? Quaternion.Euler(0, rotationDiff, 0) : Quaternion.Euler(0,0,rotationDiff) ;
             tile.transform.parent = tilemap.transform;
+            tile.GetComponent<Renderer>().sharedMaterial = GetComponent<Renderer>().sharedMaterial;
             t.tilemap.tiles[t.gridPosition].obj = tile;
             t.neighbours = neighbours;
             t.mask = mask;
+            tile.hideFlags = hideFlags;
             DestroyImmediate(gameObject);
             
         }

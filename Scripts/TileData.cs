@@ -16,5 +16,5 @@ namespace Archi.Core
             x = xPos;
             y = yPos;
         }
-    }//
+    }
 }

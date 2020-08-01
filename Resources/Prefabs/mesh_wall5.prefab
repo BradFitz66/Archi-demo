@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 7373378672816679155}
   - component: {fileID: 1947954625934185157}
   - component: {fileID: 5202799971080416828}
+  - component: {fileID: 6761199764757068594}
   m_Layer: 0
   m_Name: mesh_wall5
   m_TagString: Untagged
@@ -79,3 +80,17 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+--- !u!114 &6761199764757068594
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5767097979756026592}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a59e3c8742ebef04585bbb705ca01154, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  tilemap: {fileID: 0}
+  gridPosition: {x: 0, y: 0, z: 0}

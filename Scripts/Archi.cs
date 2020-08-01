@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Collections.ObjectModel;
 
 namespace Archi.Core
 {
@@ -8,17 +9,19 @@ namespace Archi.Core
     public class TileDictionary : SerializableDictionary<Vector3Int, TileData> {}
     [RequireComponent(typeof(Grid))]
     [ExecuteInEditMode] 
-    public class Archi : MonoBehaviour, ISerializationCallbackReceiver
+    public class Archi : MonoBehaviour
     {
         [HideInInspector]
         public TileDictionary tiles=new TileDictionary();
-        List<Vector3Int> positions;
-        List<TileData> data;
 
         [HideInInspector]
         public GameObject geometry;//
         [HideInInspector]
         public List<Material> materials = new List<Material>();
+        public int mHash;
+        [HideInInspector]
+        public List<GameObject> Tiles = new List<GameObject>();
+        public int tHash;
 
         //Data
         [HideInInspector]
@@ -26,29 +29,21 @@ namespace Archi.Core
         [HideInInspector]
         public int selectedTool = 0;
         [HideInInspector]
+        public int selectedTile = 0;
+        [HideInInspector]
         public Grid grid;
 
         GameObject plane;
 
-        public void OnBeforeSerialize()
+        public int GenerateHashList<T>(List<T> list)
         {
-            //positions.Clear();
-            //data.Clear();
-            //foreach (var kvp in tiles)
-            //{
-            //    positions.Add(kvp.Key);
-            //    data.Add(kvp.Value);
-            //}
-            
-
+            int hash = 0x7ed55d16;
+            hash ^= list.Count.GetHashCode();
+            hash ^= list.GetHashCode() << 23;
+            return hash;
         }
-        public void OnAfterDeserialize()
-        {
-            //tiles = new Dictionary<Vector3Int, TileData>();
 
-            //for (int i = 0; i != System.Math.Min(positions.Count, data.Count); i++)
-            //    tiles.Add(positions[i], data[i]);
-        }
+
 
         private void Awake()
         {
@@ -57,6 +52,8 @@ namespace Archi.Core
             {
                 geometry = new GameObject("ArchiGeometry");
             }
+            mHash= GenerateHashList(materials);
+            tHash= GenerateHashList(Tiles);
         }
         private void OnValidate()
         {
@@ -64,7 +61,7 @@ namespace Archi.Core
         }
         void Start()
         {
-
+            
         }
 
         void Update()
