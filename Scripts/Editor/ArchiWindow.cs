@@ -52,13 +52,16 @@ namespace Archi.Core.Editor
         int gridHash2D;
 
 
-        Scene previewScene;
         List<GUIContent> materialPreviews;
         List<GUIContent> tilePreviews;
+        List<GUIContent> toolPreviews;
 
         int selectedTile;
-        GameObject camera;
-        Camera camComp;
+
+        Vector3 MouseCellWorldPos;
+        Vector2Int closestCell;
+
+
         //Invisible plane for a plane for the mouse raycast to hit.
         GameObject plane;
         void print(object msg)
@@ -66,13 +69,10 @@ namespace Archi.Core.Editor
             MonoBehaviour.print(msg);
         }
 
-        
-
 
         private void OnEnable()
         {
             archi = (Archi)target;
-            tile = archi.geometry.GetComponent<Tile>() == null ? archi.geometry.AddComponent<Tile>() : archi.geometry.GetComponent<Tile>();
             lineMaterial = Resources.Load<Material>("Materials/Line");
             grid = archi.grid;
             gridHash = GridUtility.GenerateHash(grid, Color.white);
@@ -80,34 +80,31 @@ namespace Archi.Core.Editor
             _visualTree = Resources.Load<VisualTreeAsset>("UXML/MainWindow");
             materialPreviews = new List<GUIContent>(archi.materials.Count);
             tilePreviews = new List<GUIContent>(archi.Tiles.Count);
+            archi.tools = new Tools.Tool[]
+            {
+                new Brush(Resources.Load<Texture2D>("Icons/brush")),
+                new Rectangle(Resources.Load<Texture2D>("Icons/rectangle")),
+                new Brush(Resources.Load<Texture2D>("Icons/rectangle")),
+            };
+            print(archi.tools.Length);//
+            toolPreviews = new List<GUIContent>();
+            for(int i=0; i<archi.tools.Length; i++)
+            {
+                toolPreviews.Add(new GUIContent(archi.tools[i].icon));
+            }
+            print(toolPreviews.Count);
             UpdateMaterialPreviews();
             UpdateTilePreviews();
-            if (!plane)
-            {
-                //Create plane only if it doesn't exist (just incase)
-                plane = GameObject.CreatePrimitive(PrimitiveType.Plane);
-                //Hide it from hierarchy
-                plane.hideFlags = HideFlags.HideAndDontSave;
-                plane.transform.position = archi.transform.position;
-                plane.transform.localScale = new Vector3(1000, 1, 1000);
-                //Disable renderer since we only want it for collision with raycasts
-                plane.GetComponent<Renderer>().enabled = false;
-            }
             selectedTile = archi.selectedTile;
             tiles = archi.tiles;
+            MouseCellWorldPos = Vector3.zero;
         }
 
         private void OnDisable()
         {
-            EditorSceneManager.ClosePreviewScene(previewScene);
 
             DestroyGrid();
-            if (plane)
-            {
-
-                DestroyImmediate(plane);
-            }
-
+            HandleUtility.AddDefaultControl(-1);
         }
 
         //Drawing
@@ -131,12 +128,9 @@ namespace Archi.Core.Editor
                     archi.transform.ClearChildren();
                 }
                 GUILayout.Label("Tools");
+                print(toolPreviews.Count);
                 archi.selectedTool = GUILayout.Toolbar(archi.selectedTool,
-                    new GUIContent[] {
-                        new GUIContent(Resources.Load<Texture2D>("Icons/brush")),
-                        new GUIContent(Resources.Load<Texture2D>("Icons/erase")),
-                        new GUIContent(Resources.Load<Texture2D>("Icons/rectangle"))
-                    },
+                    toolPreviews.ToArray(),
                     GUILayout.Width(34 * 3),
                     GUILayout.Height(34)
                 );
@@ -148,17 +142,25 @@ namespace Archi.Core.Editor
                 EditorGUILayout.BeginVertical("Box");
                 GUILayout.Label("Material");
                 EditorGUILayout.BeginHorizontal();
-                if (archi.materials.Count > 0)
-                    archi.selectedMaterial = GUILayout.Toolbar(archi.selectedMaterial, materialPreviews.ToArray(), GUILayout.Width(34 * materialPreviews.Count), GUILayout.Height(34));
-                else
-                    GUILayout.Label("No materials. Drag a material onto the inspector to add it.");
-                if (archi.materials.Count > 0)
+                archi.useTileMaterial = GUILayout.Toggle(archi.useTileMaterial, new GUIContent("Use tile material","If checked, it will leave the tiles material as is when placed"));
+                if (!archi.useTileMaterial)
                 {
-                    if (GUILayout.Button("-", GUILayout.Width(34), GUILayout.Height(34)))
+                    if (archi.materials.Count > 0)
+                        archi.selectedMaterial = GUILayout.Toolbar(archi.selectedMaterial, materialPreviews.ToArray(), GUILayout.Width(34 * materialPreviews.Count), GUILayout.Height(34));
+                    else
+                        GUILayout.Label("No materials. Drag a material onto the inspector to add it.");
+                    if (archi.materials.Count > 0)
                     {
-                        archi.materials.RemoveAt(archi.materials.Count - 1);
-                        UpdateMaterialPreviews();
+                        if (GUILayout.Button("-", GUILayout.Width(34), GUILayout.Height(34)))
+                        {
+                            archi.materials.RemoveAt(archi.materials.Count - 1);
+                            UpdateMaterialPreviews();
+                        }
                     }
+                }
+                else
+                {
+                    GUILayout.Label("Using tiles material");
                 }
                 EditorGUILayout.EndHorizontal();
                 EditorGUILayout.EndVertical();
@@ -167,12 +169,15 @@ namespace Archi.Core.Editor
             };
             tileEditor.onGUIHandler += () =>
             {
+
+                archi.selectedTile = Mathf.Clamp(archi.selectedTile, 0, archi.Tiles.Count-1);
                 if (archi.Tiles.Count == 0)
                     return;
                 EditorGUILayout.BeginVertical("Box");
-                if (!editor)
+                if (!editor && archi.Tiles[archi.selectedTile]!=null)
                     CreateCachedEditor(archi.Tiles[archi.selectedTile].GetComponent<Tile>(),null, ref editor);
-                editor.OnInspectorGUI();
+                if(editor)
+                    editor.OnInspectorGUI();
                 EditorGUILayout.EndVertical();
 
             };
@@ -208,31 +213,16 @@ namespace Archi.Core.Editor
             HandleUtility.AddDefaultControl(GUIUtility.GetControlID(FocusType.Keyboard));
             UnityEditor.Tools.current = Tool.None;
             Draw3DGrid();
-            Ray ray = HandleUtility.GUIPointToWorldRay(Event.current.mousePosition);
-            if (Physics.Raycast(ray, out h))
-            {
-                Vector3Int closestCell = grid.WorldToCell(h.point);
-                Vector3 cellWorldPos = grid.CellToWorld(closestCell);
-                Handles.color = new Color(1, .3f, 0);
-                Handles.DrawWireCube(cellWorldPos + new Vector3(grid.cellSize.x / 2, 0, grid.cellSize.y / 2), new Vector3(grid.cellSize.x, 0, grid.cellSize.y));
-            }
+
+            closestCell = GridUtility.ScreenToGrid(Event.current.mousePosition,grid);
+            MouseCellWorldPos = grid.CellToWorld((Vector3Int)closestCell);
+
+            Handles.color = new Color(1, .3f, 0);
+            Handles.DrawWireCube(MouseCellWorldPos + new Vector3(grid.cellSize.x / 2, 0, grid.cellSize.y / 2), new Vector3(grid.cellSize.x, 0, grid.cellSize.y));
             HandleInput(Event.current);
+            
         }
-        
-        Vector3Int CellAtMouse()
-        {
-            Vector3Int cell = new Vector3Int(-1, -1, -1);
-            Ray ray = HandleUtility.GUIPointToWorldRay(Event.current.mousePosition);
-            if (Physics.Raycast(ray, out h))
-            {
-                cell = grid.WorldToCell(h.point);
-            }
-            return cell;
-        }
-        Vector3 WorldPosOfCell(Vector3Int cellPos)
-        {
-            return grid.CellToWorld(cellPos);
-        }
+
 
         void Draw3DGrid()
         {
@@ -288,37 +278,45 @@ namespace Archi.Core.Editor
                 case EventType.MouseDrag:
                     if (e.button != 0)
                         return;
-                    if (!tiles.ContainsKey(CellAtMouse()) && !erasing)
+                    if (!erasing)
                     {
-                        if (archi.selectedTool == 0)
-                        {
-                            GameObject TestTile = PrefabUtility.InstantiatePrefab(archi.Tiles[archi.selectedTile],archi.transform) as GameObject;
-                            
-                            Renderer r = TestTile.GetComponent<Renderer>();
-                            r.sharedMaterial = archi.materials[archi.selectedMaterial];
-
-                            //Get the world position of the cell from it's grid coordinates make sure we place at the center of the cell
-                            Vector3 cellWorldPos = (WorldPosOfCell(CellAtMouse())) + new Vector3(grid.cellSize.x / 2, 0, grid.cellSize.y / 2);
-                            TestTile.transform.position = cellWorldPos;
-                            Vector3Int pos = CellAtMouse();
-                            //Add tile to tile dictionary with the key being the grid location of the cell it was placed on.
-                            tiles.Add(pos, new TileData(TestTile, pos.x, pos.y));
-                            Tile t = TestTile.GetComponent<Tile>();
-                            t.tilemap = archi;
-                            t.gridPosition = pos;
-                            t.FillRotationsDictionary();
-                            t.UpdateTile();
-
-                        }
+                        archi.tools[archi.selectedTool].MouseDrag(archi.Tiles[selectedTile],new Material[] {}, (Vector3Int)closestCell,archi);
                     }
                     else
                     {
-                        if (erasing && tiles.ContainsKey(CellAtMouse()))
+                        if (erasing && tiles.ContainsKey((Vector3Int)closestCell))
                         {
-                            GameObject obj = tiles[CellAtMouse()].obj;
-                            tiles.Remove(CellAtMouse());
-                            obj.GetComponent<Tile>().UpdateTile(false, true);
-                            DestroyImmediate(obj);
+                            archi.RemoveTile((Vector3Int)closestCell);
+                        }
+                    }
+                    break;
+                case EventType.MouseDown:
+                    if (e.button != 0)
+                        return;
+                    if (!erasing)
+                    {
+                        archi.tools[archi.selectedTool].MouseDown(archi.Tiles[selectedTile], new Material[] {}, (Vector3Int)closestCell, archi);
+                    }
+                    else
+                    {
+                        if (erasing && tiles.ContainsKey((Vector3Int)closestCell))
+                        {
+                            archi.RemoveTile((Vector3Int)closestCell);
+                        }
+                    }
+                    break;
+                case EventType.MouseUp:
+                    if (e.button != 0)
+                        return;
+                    if (!erasing)
+                    {
+                        archi.tools[archi.selectedTool].MouseUp(archi.Tiles[selectedTile], new Material[] {}, (Vector3Int)closestCell, archi);
+                    }
+                    else
+                    {
+                        if (erasing && tiles.ContainsKey((Vector3Int)closestCell))
+                        {
+                            archi.RemoveTile((Vector3Int)closestCell);
                         }
                     }
                     break;

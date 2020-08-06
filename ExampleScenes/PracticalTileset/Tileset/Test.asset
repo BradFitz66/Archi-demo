@@ -1,0 +1,74 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 27874469d90a47a4ea3e0c98d6fb7491, type: 3}
+  m_Name: Test
+  m_EditorClassIdentifier: 
+  autoTileRulesDictionary:
+    items:
+    - Key: 10
+      Value:
+        tile: {fileID: 2753265976597648222, guid: 6fe02b88b7bbab347b87007eebbbe6cf,
+          type: 3}
+        rotationDiff: 90
+        ZRotation: 0
+    - Key: 2
+      Value:
+        tile: {fileID: 2753265976597648222, guid: 6fe02b88b7bbab347b87007eebbbe6cf,
+          type: 3}
+        rotationDiff: 90
+        ZRotation: 0
+    - Key: 8
+      Value:
+        tile: {fileID: 2753265976597648222, guid: 6fe02b88b7bbab347b87007eebbbe6cf,
+          type: 3}
+        rotationDiff: 90
+        ZRotation: 0
+    - Key: 3
+      Value:
+        tile: {fileID: 2753265976597648222, guid: 424b9ca07183a18449b1935d87fd03d0,
+          type: 3}
+        rotationDiff: 0
+        ZRotation: 0
+    - Key: 9
+      Value:
+        tile: {fileID: 2753265976597648222, guid: 424b9ca07183a18449b1935d87fd03d0,
+          type: 3}
+        rotationDiff: -90
+        ZRotation: 0
+    - Key: 6
+      Value:
+        tile: {fileID: 2753265976597648222, guid: 424b9ca07183a18449b1935d87fd03d0,
+          type: 3}
+        rotationDiff: 90
+        ZRotation: 0
+    - Key: 12
+      Value:
+        tile: {fileID: 2753265976597648222, guid: 424b9ca07183a18449b1935d87fd03d0,
+          type: 3}
+        rotationDiff: 180
+        ZRotation: 0
+    - Key: 14
+      Value:
+        tile: {fileID: 2753265976597648222, guid: 6fe02b88b7bbab347b87007eebbbe6cf,
+          type: 3}
+        rotationDiff: 90
+        ZRotation: 0
+    - Key: 11
+      Value:
+        tile: {fileID: 2753265976597648222, guid: 6fe02b88b7bbab347b87007eebbbe6cf,
+          type: 3}
+        rotationDiff: 90
+        ZRotation: 0
+  defaultTile:
+    tile: {fileID: 2753265976597648222, guid: 6fe02b88b7bbab347b87007eebbbe6cf, type: 3}
+    rotationDiff: 0
+    ZRotation: 0

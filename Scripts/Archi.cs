@@ -2,74 +2,109 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System.Collections.ObjectModel;
+using Archi.Core.Components;
+using UnityEditor;
 
 namespace Archi.Core
 {
     [System.Serializable]
     public class TileDictionary : SerializableDictionary<Vector3Int, TileData> {}
     [RequireComponent(typeof(Grid))]
-    [ExecuteInEditMode] 
+    [ExecuteInEditMode]
     public class Archi : MonoBehaviour
     {
-        [HideInInspector]
-        public TileDictionary tiles=new TileDictionary();
 
-        [HideInInspector]
-        public GameObject geometry;//
-        [HideInInspector]
-        public List<Material> materials = new List<Material>();
+        public TileDictionary tiles;
+
+        public List<Material> materials;
         public int mHash;
-        [HideInInspector]
-        public List<GameObject> Tiles = new List<GameObject>();
+        public List<GameObject> Tiles;
         public int tHash;
 
-        //Data
-        [HideInInspector]
+        //Data (I store data in this script because Unity will serialize it and save it)
+
         public int selectedMaterial = 0;
-        [HideInInspector]
+
         public int selectedTool = 0;
-        [HideInInspector]
         public int selectedTile = 0;
-        [HideInInspector]
         public Grid grid;
 
-        GameObject plane;
+        public bool useTileMaterial = false;
 
-        public int GenerateHashList<T>(List<T> list)
+        public Tools.Tool[] tools=new Tools.Tool[] { };
+
+
+        void Awake()
         {
-            int hash = 0x7ed55d16;
-            hash ^= list.Count.GetHashCode();
-            hash ^= list.GetHashCode() << 23;
-            return hash;
-        }
 
-
-
-        private void Awake()
-        {
-            grid = GetComponent<Grid>();
-            if (geometry == null)
+            if (tiles==null)
             {
-                geometry = new GameObject("ArchiGeometry");
+                print("Creating new tiles dictionary because it's null");
+                tiles = new TileDictionary();
             }
-            mHash= GenerateHashList(materials);
-            tHash= GenerateHashList(Tiles);
+            if (materials == null)
+            {
+                materials = new List<Material>();
+            }
+            if (Tiles == null)
+            {
+                Tiles = new List<GameObject>();
+            }
+            if (grid == null)
+            {
+                grid = GetComponent<Grid>();
+            }
+            print(tiles.Count);
         }
-        private void OnValidate()
+
+        
+
+        public void PlaceTile(Vector3Int pos,Vector3 worldPos, GameObject tile,bool UpdateOnPlace=true, bool onlyUpdateNeighbours=false)
         {
-            grid = GetComponent<Grid>();
+            if (Application.isPlaying || !Application.isEditor)
+                return;
+            GameObject TestTile = PrefabUtility.InstantiatePrefab(tile, transform) as GameObject;
+
+            if (!useTileMaterial)
+            {
+                print("!!!");
+                Renderer r = TestTile.GetComponent<Renderer>();
+                r.sharedMaterial = materials[selectedMaterial];
+            }
+            //Get the world position of the cell from it's grid coordinates make sure we place at the center of the cell
+
+            //Add tile to tile dictionary with the key being the grid location of the cell it was placed on.
+            tiles.Add(pos, new TileData(TestTile, pos.x, pos.y));
+            Tile t = TestTile.GetComponent<Tile>();
+            t.enabled = false;
+            t.tilemap = this;
+            t.transform.parent = transform;
+            t.transform.position = worldPos;
+            t.gridPosition = pos;
+            t.enabled = true;
         }
-        void Start()
+
+        public void RemoveTile(Vector3Int cellPos)
         {
-            
+            if (Application.isPlaying || !Application.isEditor)
+                return;
+            if (tiles.ContainsKey(cellPos))
+            {
+                TileData tile = tiles[cellPos];
+                tiles.Remove(cellPos);
+                //tile.obj.GetComponent<Tile>().UpdateTile();
+
+                DestroyImmediate(tile.obj);
+            }
         }
+
+
+        
 
         void Update()
         {
-            if (geometry == null)
-            {
-                geometry = new GameObject("ArchiGeometry");
-            }
+            if (Application.isPlaying || !Application.isEditor)
+                return;
             if (grid == null)
             {
                 grid = GetComponent<Grid>();

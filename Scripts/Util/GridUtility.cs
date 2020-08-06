@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 
 namespace Archi.Core.Utils
@@ -31,6 +32,78 @@ namespace Archi.Core.Utils
             hash ^= layout.cellSwizzle.GetHashCode() << 7;
             hash ^= color.GetHashCode();
             return hash;
+        }
+        private static Vector3 GetGridForward(GridLayout gridLayout)
+        {
+            switch (gridLayout.cellSwizzle)
+            {
+                case GridLayout.CellSwizzle.XYZ:
+                    return gridLayout.transform.forward * -1f;
+                case GridLayout.CellSwizzle.XZY:
+                    return gridLayout.transform.up * -1f;
+                case GridLayout.CellSwizzle.YXZ:
+                    return gridLayout.transform.forward;
+                case GridLayout.CellSwizzle.YZX:
+                    return gridLayout.transform.up;
+                case GridLayout.CellSwizzle.ZXY:
+                    return gridLayout.transform.right;
+                case GridLayout.CellSwizzle.ZYX:
+                    return gridLayout.transform.right * -1f;
+            }
+            return gridLayout.transform.forward * -1f;
+        }
+
+
+        private static Plane GetGridPlane(Grid grid)
+        {
+            return new Plane(GetGridForward(grid), grid.transform.position);
+        }
+
+        public static Vector3Int LocalToGrid(GridLayout gridLayout, Vector3 local)
+        {
+            return gridLayout.LocalToCell(local);
+        }
+
+
+        public static  Vector2Int ScreenToGrid(Vector2 screenPosition,Grid grid)
+        {
+            if (grid != null)
+            {
+                Vector3Int cell = LocalToGrid(grid, ScreenToLocal(grid.transform, screenPosition, GetGridPlane(grid)));
+                return new Vector2Int(cell.x, cell.y);
+            }
+            return Vector2Int.zero;
+        }
+
+        public static Vector3 ScreenToLocal(Transform transform, Vector2 screenPosition)
+        {
+            return ScreenToLocal(transform, screenPosition, new Plane(transform.forward * -1f, transform.position));
+        }
+
+        public static Vector3 GetCellCenter(Vector3Int cell, GridLayout grid)
+        {
+            return grid.CellToWorld(cell) + new Vector3(grid.cellSize.x / 2, 0, grid.cellSize.y / 2);
+        }
+
+        public static Vector3 ScreenToLocal(Transform transform, Vector2 screenPosition, Plane plane)
+        {
+            Ray ray;
+            if (Camera.current.orthographic)
+            {
+                Vector2 screen = EditorGUIUtility.PointsToPixels((screenPosition));
+                screen.y = Screen.height - screen.y;
+                Vector3 cameraWorldPoint = Camera.current.ScreenToWorldPoint(screen);
+                ray = new Ray(cameraWorldPoint, Camera.current.transform.forward);
+            }
+            else
+            {
+                ray = HandleUtility.GUIPointToWorldRay(screenPosition);
+            }
+
+            float result;
+            plane.Raycast(ray, out result);
+            Vector3 world = ray.GetPoint(result);
+            return transform.InverseTransformPoint(world);
         }
 
         public static Mesh GenerateGridMesh(GridLayout gridLayout, Color color, float screenPixelSize, RectInt bounds, MeshTopology topology)

@@ -7,8 +7,11 @@ using System.Net.Security;
 using UnityEditor;
 using UnityEngine.UI;
 using Malee.List;
+using Archi.Core.Objects;
+using UnityEngine.PlayerLoop;
 
-namespace Archi.Core.Components {
+namespace Archi.Core.Components
+{
     [Flags]
     public enum TileBitMask
     {
@@ -20,23 +23,20 @@ namespace Archi.Core.Components {
     }
 
     [System.Serializable]
-    public class TileDictionary : SerializableDictionary<int,AutoTileData> {}
+    public class TileDictionary : SerializableDictionary<int, AutoTileData> { }
 
     [System.Serializable]
     public struct AutoTileData
     {
         [Tooltip("The tile prefab. This must have a Tile component attached to it")]
         public GameObject tile;
-        
+
         [Tooltip("Rotation difference. This is so you can reuse the same tile prefab and just rotate it a certain amount of degrees. Useful for corner pieces.")]
         public float rotationDiff;
 
         [Tooltip("Should the tile rotate on the Z axis instead of Y (useful for if you mess up a blender export)")]
         public bool ZRotation;
 
-        [Tooltip("The tile mask. For example, if the tile is a corner piece, this should be set to either (Right+Bottom), (Right+Top), (Left+Top), (Left+Bottom) ")]
-        public TileBitMask tileMask;
-        
         /// <summary>
         /// Create a new autotile
         /// </summary>
@@ -44,76 +44,56 @@ namespace Archi.Core.Components {
         /// <param name="r">Rotation of the tile</param>
         /// <param name="z">Should we rotate by Z instead of Y? (for when you fuck up blender exporting, like I did)</param>
         /// <param name="tM">Should we rotate by Z instead of Y? (for when you fuck up blender exporting, like I did)</param>
-        public AutoTileData(GameObject t, float r,bool z, TileBitMask tM=TileBitMask.None)
+        public AutoTileData(GameObject t, float r, bool z, TileBitMask tM = TileBitMask.None)
         {
             tile = t;
             rotationDiff = r;
             ZRotation = z;
-            tileMask= tM;
         }
     }
     [System.Serializable]
-    public class AutoTileDataList : ReorderableArray<AutoTileData>{}
+    public class AutoTileDataList : ReorderableArray<AutoTileData> { }
     [ExecuteInEditMode]
     public class Tile : MonoBehaviour
     {
         [HideInInspector]
         public Archi tilemap;
         [HideInInspector]
-        public Vector3Int gridPosition=Vector3Int.zero;
+        public Vector3Int gridPosition = Vector3Int.zero;
+
         TileBitMask mask;
 
-        
-        TileDictionary rotations;
+
+        public AutoTileRules rules;
 
 
-        [Reorderable(surrogateType = typeof(AutoTileData), surrogateProperty = "objectProperty")]
-        public AutoTileDataList rotationsList;
-        
         TileData[] neighbours;
-        [Tooltip("The default tile that will be placed if no rule can be found. THIS SHOULD NOT BE THE SAME AS YOUR 'MAIN' TILE (the one that contains the rule info)")]
-        public AutoTileData defaultTile;
 
-        void Awake()
+        private void Start()
         {
-            rotations = new TileDictionary();
-
-            defaultTile = new AutoTileData(Resources.Load<GameObject>("Prefabs/mesh_wall"),0,true);
-        }
-        //We need to be able to control when we add the stuff from rotationsList into rotations.
-        public void FillRotationsDictionary()
-        {
-            for (int i = 0; i < rotationsList.Count; i++)
-            {
-                /*Ugly hack. For some reason, selecting all of the flags in unity's enum flag field drawer causes (int)mask to become -1
-                    
-                Apparently this is 'correct' but isn't what I want, since in code doing the same thing via:
-
-                mask = TileBitMask.Left | TileBitMask.Right | TileBitMask.Bottom | TileBitMask.Top; and doing (int)mask will give me 15, causing us to not be able
-                to get the correct tile from the dictionary. I just hardcode it so if the tileMask is -1, then just set it to be 15. Ugly, but it works.
-                 */
-                rotations.Add((int)rotationsList[i].tileMask!= -1 ? (int)rotationsList[i].tileMask : 15, rotationsList[i]);
-            }
-
+            UpdateTile();
         }
         private void OnDestroy()
         {
-            
+
         }
         void GetNeighbours(out TileData[] neighbours)
         {
+               
             neighbours = new TileData[8];
             Vector3Int t = gridPosition + new Vector3Int(0, 1, 0);
             Vector3Int r = gridPosition + new Vector3Int(1, 0, 0);
             Vector3Int b = gridPosition + new Vector3Int(0, -1, 0);
             Vector3Int l = gridPosition + new Vector3Int(-1, 0, 0);
+
             neighbours[0] = tilemap.tiles.ContainsKey(t) ? tilemap.tiles[t] : null; //Top 
             neighbours[1] = tilemap.tiles.ContainsKey(r) ? tilemap.tiles[r] : null;//Right
             neighbours[2] = tilemap.tiles.ContainsKey(b) ? tilemap.tiles[b] : null;//Bottom
             neighbours[3] = tilemap.tiles.ContainsKey(l) ? tilemap.tiles[l] : null;//Left
 
         }
-        public void UpdateTile(bool beingUpdated = false, bool isUpdater=false)
+
+        public void UpdateTile(bool beingUpdated = false, bool isUpdater = false)
         {
             GetNeighbours(out neighbours);
             mask = TileBitMask.None;
@@ -125,7 +105,7 @@ namespace Archi.Core.Components {
                     break;
                 if (neighbours[i] != null)
                 {
-                    if(neighbours[i].obj!=null)
+                    if (neighbours[i].obj != null)
                         neighbours[i].obj.GetComponent<Tile>().UpdateTile(true);
                 }
             }
@@ -141,62 +121,79 @@ namespace Archi.Core.Components {
             if (neighbours[3] != null)
                 mask |= TileBitMask.Left;
 
+            //Ugly hack. Since selecting everything via the unity flag drawer turns mask into -1, I need to make sure when updating, we use -1 instead of 15 to get the correct key inside the dictionary
+            if ((int)mask == 15)
+                mask |= (TileBitMask)(-1);
+
+            GameObject newTile = rules.autoTileRulesDictionary.ContainsKey(mask) ? rules.autoTileRulesDictionary[mask].tile : rules.defaultTile.tile;
+            float rotationDiff = rules.autoTileRulesDictionary.ContainsKey(mask) ? rules.autoTileRulesDictionary[mask].rotationDiff : rules.defaultTile.rotationDiff;
+            bool zRotation = rules.autoTileRulesDictionary.ContainsKey(mask) ? rules.autoTileRulesDictionary[mask].ZRotation : rules.defaultTile.ZRotation;
 
 
-            GameObject newTile = rotations.ContainsKey((int)mask) ? rotations[(int)mask].tile: defaultTile.tile;
-            float rotationDiff = rotations.ContainsKey((int)mask) ? rotations[(int)mask].rotationDiff: defaultTile.rotationDiff;
-            bool zRotation = rotations.ContainsKey((int)mask) ? rotations[(int)mask].ZRotation: defaultTile.ZRotation;
 
-            //Replacing tile with new one
-            
-            GameObject tile = PrefabUtility.InstantiatePrefab(newTile) as GameObject;
+            //Get the actual prefab from the assets (otherwise we'll be trying to instantiate the wrong thing)
+            GameObject basePrefab = PrefabUtility.GetCorrespondingObjectFromOriginalSource(newTile);
+            GameObject tile = PrefabUtility.InstantiatePrefab(basePrefab) as GameObject;
+
             if (tile)
             {
+                //Although we can just use tilemap.PlaceTile, this gives us much finer control. (and at the current state, using placetile here will cause an infinite loop of updating, crashing unity)
                 Tile t = tile.GetComponent<Tile>();
                 tile.transform.position = transform.position;
                 tile.transform.rotation *= !zRotation ? Quaternion.Euler(0, rotationDiff, 0) : Quaternion.Euler(0, 0, rotationDiff);
                 tile.transform.parent = tilemap.transform;
-                tile.GetComponent<Renderer>().sharedMaterial = GetComponent<Renderer>().sharedMaterial;
-                if (t)
+                if (tile.GetComponent<Renderer>())
                 {
-                    t.gridPosition = gridPosition;
-                    t.tilemap = tilemap;
-                    t.tilemap.tiles[t.gridPosition].obj = tile;
-                    t.neighbours = neighbours;
-                    t.mask = mask;
-                    t.rotationsList = rotationsList;
-                    t.FillRotationsDictionary();
+                    tile.GetComponent<Renderer>().sharedMaterial = GetComponent<Renderer>().sharedMaterial;
                 }
+                t.gridPosition = gridPosition;
+                t.tilemap = tilemap;
+                t.tilemap.tiles[t.gridPosition].obj = tile;
+                t.neighbours = neighbours;
+                t.mask = mask;
+                t.rules = rules;
                 tile.hideFlags = hideFlags;
+
                 DestroyImmediate(gameObject);
             }
         }
+
+
         //hack
         static void drawString(string text, Vector3 worldPos, Color? colour = null)
         {
-            UnityEditor.Handles.BeginGUI();
-            if (colour.HasValue) GUI.color = colour.Value;
-            var view = UnityEditor.SceneView.currentDrawingSceneView;
-            Vector3 screenPos = view.camera.WorldToScreenPoint(worldPos);
-            Vector2 size = GUI.skin.label.CalcSize(new GUIContent(text));
-            GUI.Label(new Rect(screenPos.x - (size.x / 2), -screenPos.y + view.position.height + 4, size.x, size.y), text);
-            UnityEditor.Handles.EndGUI();
-        }        
+            if (Application.isEditor && !Application.isPlaying)
+            {
+                UnityEditor.Handles.BeginGUI();
+                if (colour.HasValue) GUI.color = colour.Value;
+                var view = UnityEditor.SceneView.currentDrawingSceneView;
+                if (view == null || view.camera == null)
+                    return;
+                Vector3 screenPos = view.camera.WorldToScreenPoint(worldPos);
+                Vector2 size = GUI.skin.label.CalcSize(new GUIContent(text));
+                GUI.Label(new Rect(screenPos.x - (size.x / 2), -screenPos.y + view.position.height + 4, size.x, size.y), text);
+                UnityEditor.Handles.EndGUI();
+            }
+        }
         private void OnDrawGizmosSelected()
         {
+            if (Application.isPlaying || !Application.isEditor)
+                return;
             drawString(((int)mask).ToString(), transform.position + new Vector3(0, 2, 0), Color.black);
         }
         private void OnDrawGizmos()
         {
+            if (Application.isPlaying || !Application.isEditor)
+                return;
             if (neighbours == null)
                 return;
             for (int i = 0; i < neighbours.Length; i++)
             {
-                if (neighbours[i] != null && neighbours[i].obj!=null)
+                if (neighbours[i] != null && neighbours[i].obj != null)
                 {
                     Gizmos.color = Color.red;
                     Gizmos.DrawCube(neighbours[i].obj.transform.position, new Vector3(.1f, .1f, .1f));
-                    Gizmos.DrawLine(transform.position,neighbours[i].obj.transform.position);
+                    Gizmos.DrawLine(transform.position, neighbours[i].obj.transform.position);
                 }
             }
         }
