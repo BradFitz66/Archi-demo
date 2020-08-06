@@ -67,7 +67,6 @@ namespace Archi.Core
 
             if (!useTileMaterial)
             {
-                print("!!!");
                 Renderer r = TestTile.GetComponent<Renderer>();
                 r.sharedMaterial = materials[selectedMaterial];
             }
@@ -92,8 +91,6 @@ namespace Archi.Core
             {
                 TileData tile = tiles[cellPos];
                 tiles.Remove(cellPos);
-                //tile.obj.GetComponent<Tile>().UpdateTile();
-
                 DestroyImmediate(tile.obj);
             }
         }

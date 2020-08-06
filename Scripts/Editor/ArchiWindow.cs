@@ -217,10 +217,9 @@ namespace Archi.Core.Editor
             closestCell = GridUtility.ScreenToGrid(Event.current.mousePosition,grid);
             MouseCellWorldPos = grid.CellToWorld((Vector3Int)closestCell);
 
-            Handles.color = new Color(1, .3f, 0);
-            Handles.DrawWireCube(MouseCellWorldPos + new Vector3(grid.cellSize.x / 2, 0, grid.cellSize.y / 2), new Vector3(grid.cellSize.x, 0, grid.cellSize.y));
+            if(archi.tools[archi.selectedTool]!=null)
+                archi.tools[archi.selectedTool].Preview((Vector3Int)closestCell,grid);
             HandleInput(Event.current);
-            
         }
 
 
@@ -278,47 +277,17 @@ namespace Archi.Core.Editor
                 case EventType.MouseDrag:
                     if (e.button != 0)
                         return;
-                    if (!erasing)
-                    {
-                        archi.tools[archi.selectedTool].MouseDrag(archi.Tiles[selectedTile],new Material[] {}, (Vector3Int)closestCell,archi);
-                    }
-                    else
-                    {
-                        if (erasing && tiles.ContainsKey((Vector3Int)closestCell))
-                        {
-                            archi.RemoveTile((Vector3Int)closestCell);
-                        }
-                    }
+                    archi.tools[archi.selectedTool].MouseDrag(archi.Tiles[selectedTile], new Material[] { }, (Vector3Int)closestCell, archi, erasing);
                     break;
                 case EventType.MouseDown:
                     if (e.button != 0)
                         return;
-                    if (!erasing)
-                    {
-                        archi.tools[archi.selectedTool].MouseDown(archi.Tiles[selectedTile], new Material[] {}, (Vector3Int)closestCell, archi);
-                    }
-                    else
-                    {
-                        if (erasing && tiles.ContainsKey((Vector3Int)closestCell))
-                        {
-                            archi.RemoveTile((Vector3Int)closestCell);
-                        }
-                    }
+                        archi.tools[archi.selectedTool].MouseDown(archi.Tiles[selectedTile], new Material[] {}, (Vector3Int)closestCell, archi,erasing);
                     break;
                 case EventType.MouseUp:
                     if (e.button != 0)
                         return;
-                    if (!erasing)
-                    {
-                        archi.tools[archi.selectedTool].MouseUp(archi.Tiles[selectedTile], new Material[] {}, (Vector3Int)closestCell, archi);
-                    }
-                    else
-                    {
-                        if (erasing && tiles.ContainsKey((Vector3Int)closestCell))
-                        {
-                            archi.RemoveTile((Vector3Int)closestCell);
-                        }
-                    }
+                        archi.tools[archi.selectedTool].MouseUp(archi.Tiles[selectedTile], new Material[] {}, (Vector3Int)closestCell, archi,erasing);
                     break;
                 case EventType.KeyDown:
                     if (!erasing && e.keyCode == KeyCode.E)

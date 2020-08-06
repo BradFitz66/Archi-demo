@@ -67,6 +67,7 @@ namespace Archi.Core.Components
         public AutoTileRules rules;
 
 
+
         TileData[] neighbours;
 
         private void Start()
@@ -156,6 +157,7 @@ namespace Archi.Core.Components
 
                 DestroyImmediate(gameObject);
             }
+            print("Updated");
         }
 
 
