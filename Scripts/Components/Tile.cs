@@ -9,6 +9,7 @@ using UnityEngine.UI;
 using Malee.List;
 using Archi.Core.Objects;
 using UnityEngine.PlayerLoop;
+using Archi.Core.Settings;
 
 namespace Archi.Core.Components
 {
@@ -157,14 +158,14 @@ namespace Archi.Core.Components
 
                 DestroyImmediate(gameObject);
             }
-            print("Updated");
         }
 
 
         //hack
         static void drawString(string text, Vector3 worldPos, Color? colour = null)
         {
-            if (Application.isEditor && !Application.isPlaying)
+            bool showDebug = MyCustomSettings.GetSerializedSettings().FindProperty("showDebug").boolValue;
+            if (Application.isEditor && !Application.isPlaying && showDebug)
             {
                 UnityEditor.Handles.BeginGUI();
                 if (colour.HasValue) GUI.color = colour.Value;
@@ -179,14 +180,10 @@ namespace Archi.Core.Components
         }
         private void OnDrawGizmosSelected()
         {
-            if (Application.isPlaying || !Application.isEditor)
-                return;
             drawString(((int)mask).ToString(), transform.position + new Vector3(0, 2, 0), Color.black);
         }
         private void OnDrawGizmos()
         {
-            if (Application.isPlaying || !Application.isEditor)
-                return;
             if (neighbours == null)
                 return;
             for (int i = 0; i < neighbours.Length; i++)

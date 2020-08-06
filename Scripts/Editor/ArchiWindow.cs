@@ -84,15 +84,14 @@ namespace Archi.Core.Editor
             {
                 new Brush(Resources.Load<Texture2D>("Icons/brush")),
                 new Rectangle(Resources.Load<Texture2D>("Icons/rectangle")),
-                new Brush(Resources.Load<Texture2D>("Icons/rectangle")),
+                new FilledRectangle(Resources.Load<Texture2D>("Icons/filledrect")),
             };
-            print(archi.tools.Length);//
+            //print(archi.tools.Length);
             toolPreviews = new List<GUIContent>();
             for(int i=0; i<archi.tools.Length; i++)
             {
-                toolPreviews.Add(new GUIContent(archi.tools[i].icon));
+                toolPreviews.Add(new GUIContent(archi.tools[i].icon,archi.tools[i].GetType().ToString()));
             }
-            print(toolPreviews.Count);
             UpdateMaterialPreviews();
             UpdateTilePreviews();
             selectedTile = archi.selectedTile;
@@ -124,11 +123,14 @@ namespace Archi.Core.Editor
                 EditorGUILayout.BeginVertical("Box");
                 if (GUILayout.Button("Clear tilemap"))
                 {
-                    tiles.Clear();
-                    archi.transform.ClearChildren();
+                    bool confirm=EditorUtility.DisplayDialog("Are you sure?", "Clearing a tilemap will erase ALL tiles with no way (currently) to undo. Are you sure?", "Yes, I am sure","nvm");
+                    if (confirm)
+                    {
+                        tiles.Clear();
+                        archi.transform.ClearChildren();
+                    }
                 }
                 GUILayout.Label("Tools");
-                print(toolPreviews.Count);
                 archi.selectedTool = GUILayout.Toolbar(archi.selectedTool,
                     toolPreviews.ToArray(),
                     GUILayout.Width(34 * 3),

@@ -14,9 +14,8 @@ namespace Archi.Core.Settings
 
         [SerializeField]
         private Color handleColor = new Color(1, .3f, 0);
-
         [SerializeField]
-        private string m_SomeString;
+        bool showDebug;
 
         internal static MyCustomSettings GetOrCreateSettings()
         {
@@ -25,6 +24,8 @@ namespace Archi.Core.Settings
             {
                 settings = ScriptableObject.CreateInstance<MyCustomSettings>();
                 settings.handleColor = new Color(1, .3f, 0);
+                settings.showDebug = false;
+                
                 AssetDatabase.CreateAsset(settings, k_MyCustomSettingsPath);
                 AssetDatabase.SaveAssets();
             }
@@ -55,6 +56,7 @@ namespace Archi.Core.Settings
                     var settings = MyCustomSettings.GetSerializedSettings();
                     GUILayout.Label(new GUIContent("Handle Color"));
                     settings.FindProperty("handleColor").colorValue = EditorGUILayout.ColorField(settings.FindProperty("handleColor").colorValue);
+                    settings.FindProperty("showDebug").boolValue = EditorGUILayout.Toggle(new GUIContent("Show debug information"),settings.FindProperty("showDebug").boolValue);
                     settings.ApplyModifiedProperties();
                 },
 
