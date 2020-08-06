@@ -1,6 +1,6 @@
 # ARCHI DEMO
 
-Archi is a 3D tilemap tool. The purpose of this demo is to test the intuitiveness of the tool. Although possible, it is not recommended you use this for current projects as this tool is still very buggy and in active development and has not been tested for bugs inside actual builds. Inside this demo you'll find two examples of different tilesets, a very basic one created by me in Blender, and a more detailed and complex tileset made by Kenney over at https://opengameart.org/content/castle-kit.
+Archi is a 3D tilemap tool. The purpose of this demo is to test the intuitiveness of the tool. Although possible, it is not recommended you use this for current projects as this tool is still very buggy and in active development and has not been tested for bugs inside actual builds. Inside this demo you'll find two examples of different tilesets, a very basic one created by me in Blender, and another tileset using a pack by Kenney over at https://opengameart.org/content/castle-kit.
 
 # How do I create my own tileset with autotile rules?
 
