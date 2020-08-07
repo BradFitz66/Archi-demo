@@ -184,7 +184,8 @@ namespace Archi.Core.Components
         }
         private void OnDrawGizmos()
         {
-            if (neighbours == null)
+            bool showDebug = MyCustomSettings.GetSerializedSettings().FindProperty("showDebug").boolValue;
+            if (neighbours == null || !showDebug)
                 return;
             for (int i = 0; i < neighbours.Length; i++)
             {

@@ -89,8 +89,12 @@ public class FilledRectangle : Archi.Core.Tools.Tool
             Vector3 size = (mouseStart - mouseEnd);
             Bounds bounds = new Bounds(mouseStart - size / 2, vecAbs(size));
             Handles.color = MyCustomSettings.GetSerializedSettings().FindProperty("handleColor").colorValue;
+            Vector2 labelSize = GUI.skin.label.CalcSize(new GUIContent("Width"));
+            Handles.Label(new Vector3((bounds.min.x + vecAbs(size).x / 2), 0, bounds.min.z-2), new GUIContent("Width: "+Mathf.Abs(size.x)));
+            Handles.Label(new Vector3(bounds.min.x-2, 0, (bounds.min.z+ vecAbs(size).z / 2)), new GUIContent("Height: "+Mathf.Abs(size.z)));
             Handles.DrawWireCube(bounds.center, size);
         }
+        
     }
 
     public FilledRectangle(Texture2D i) : base(i) {}

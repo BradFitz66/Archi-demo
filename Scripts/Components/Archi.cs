@@ -39,7 +39,6 @@ namespace Archi.Core
 
             if (tiles==null)
             {
-                print("Creating new tiles dictionary because it's null");
                 tiles = new TileDictionary();
             }
             if (materials == null)
@@ -54,7 +53,6 @@ namespace Archi.Core
             {
                 grid = GetComponent<Grid>();
             }
-            print(tiles.Count);
         }
 
         

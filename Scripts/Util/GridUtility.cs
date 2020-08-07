@@ -69,7 +69,9 @@ namespace Archi.Core.Utils
         {
             if (grid != null)
             {
-                Vector3Int cell = LocalToGrid(grid, ScreenToLocal(grid.transform, screenPosition, GetGridPlane(grid)));
+                var transform = grid.transform;
+                Plane plane = new Plane(GetGridForward(grid), transform.position);
+                Vector3Int cell = LocalToGrid(grid, ScreenToLocal(transform, screenPosition, plane));
                 return new Vector2Int(cell.x, cell.y);
             }
             return Vector2Int.zero;
@@ -88,17 +90,17 @@ namespace Archi.Core.Utils
         public static Vector3 ScreenToLocal(Transform transform, Vector2 screenPosition, Plane plane)
         {
             Ray ray;
-            if (Camera.current.orthographic)
-            {
-                Vector2 screen = EditorGUIUtility.PointsToPixels((screenPosition));
-                screen.y = Screen.height - screen.y;
-                Vector3 cameraWorldPoint = Camera.current.ScreenToWorldPoint(screen);
-                ray = new Ray(cameraWorldPoint, Camera.current.transform.forward);
-            }
-            else
-            {
-                ray = HandleUtility.GUIPointToWorldRay(screenPosition);
-            }
+            //if (Camera.current.orthographic)
+            //{
+            //    Vector2 screen = EditorGUIUtility.PointsToPixels(screenPosition);
+            //    screen.y = Screen.height - screen.y;
+            //    Vector3 cameraWorldPoint = Camera.current.ScreenToWorldPoint(screen);
+            //    ray = new Ray(cameraWorldPoint, Camera.current.transform.forward);
+            //}
+            //else
+            //{
+            //}
+            ray = HandleUtility.GUIPointToWorldRay(screenPosition);
 
             float result;
             plane.Raycast(ray, out result);
