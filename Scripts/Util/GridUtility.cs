@@ -90,16 +90,6 @@ namespace Archi.Core.Utils
         public static Vector3 ScreenToLocal(Transform transform, Vector2 screenPosition, Plane plane)
         {
             Ray ray;
-            //if (Camera.current.orthographic)
-            //{
-            //    Vector2 screen = EditorGUIUtility.PointsToPixels(screenPosition);
-            //    screen.y = Screen.height - screen.y;
-            //    Vector3 cameraWorldPoint = Camera.current.ScreenToWorldPoint(screen);
-            //    ray = new Ray(cameraWorldPoint, Camera.current.transform.forward);
-            //}
-            //else
-            //{
-            //}
             ray = HandleUtility.GUIPointToWorldRay(screenPosition);
 
             float result;
